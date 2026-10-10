@@ -2,18 +2,17 @@ const { addonBuilder, serveHTTP } = require("stremio-addon-sdk");
 const axios = require("axios");
 const cheerio = require("cheerio");
 
-// Başlangıç/Yedek adresi
 let CURRENT_DOMAIN = "https://www.hdfilmcehennemi.nl";
 
-// HTTP İstekleri İçin Standart Başlıklar
 const defaultHeaders = {
-  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
   "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
+  "Cache-Control": "no-cache",
+  "Pragma": "no-cache",
   "Referer": CURRENT_DOMAIN + "/"
 };
 
-// Sitenin güncel alan adını otomatik tespit eden fonksiyon
 async function updateWorkingDomain() {
   try {
     const res = await axios.get(CURRENT_DOMAIN, {
@@ -38,9 +37,9 @@ async function updateWorkingDomain() {
 
 const builder = new addonBuilder({
   id: "org.hdfilmcehennemi.mindiptv",
-  version: "1.1.0",
+  version: "1.2.0",
   name: "Hdfilmcehennemi Addon",
-  description: "Mind IPTV için Hdfilmcehennemi film akış eklentisi",
+  description: "Mind IPTV ve Stremio için Hdfilmcehennemi film akış eklentisi",
   resources: ["catalog", "stream"],
   types: ["movie"],
   catalogs: [
@@ -59,15 +58,24 @@ builder.defineCatalogHandler(async ({ type, id }) => {
         const $ = cheerio.load(res.data);
         const metas = [];
 
-        $(".poster-pop").each((i, el) => {
+        // Hem poster-pop hem de alternatif film kartı seçicilerini tarıyoruz
+        let elements = $(".poster-pop");
+        if (elements.length === 0) {
+          elements = $(".poster, .movie-box, article");
+        }
+
+        elements.each((i, el) => {
           if (i >= 24) return;
           
-          let title = $(el).find(".poster-title").text().trim();
+          let title = $(el).find(".poster-title, .title, h2, h3").first().text().trim();
           if (!title) {
-            title = "Film";
+            title = $(el).attr("title") || "Film";
           }
 
-          const href = $(el).attr("href");
+          let href = $(el).attr("href");
+          if (!href) {
+            href = $(el).find("a").attr("href");
+          }
           
           let img = $(el).find("img").attr("data-src");
           if (!img) {
@@ -95,6 +103,7 @@ builder.defineCatalogHandler(async ({ type, id }) => {
           }
         });
 
+        console.log(`[Katalog] Toplam ${metas.length} film bulundu.`);
         return { metas };
       } catch (err) {
         console.error("Katalog çekme hatası:", err.message);
@@ -120,7 +129,11 @@ builder.defineStreamHandler(async ({ type, id }) => {
         const res = await axios.get(targetUrl, { headers: defaultHeaders });
         const $ = cheerio.load(res.data);
         
-        const iframeSrc = $("iframe").first().attr("src");
+        // Oynatıcı / Iframe tespiti
+        let iframeSrc = $("iframe").first().attr("src");
+        if (!iframeSrc) {
+          iframeSrc = $("iframe[data-src]").first().attr("data-src");
+        }
 
         if (iframeSrc) {
           let fullStreamUrl = iframeSrc;
