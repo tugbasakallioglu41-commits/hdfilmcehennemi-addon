@@ -1,16 +1,13 @@
 {
-  "name": "hdfilmcehennemi-addon",
-  "version": "1.3.0",
-  "description": "Mind IPTV ve Stremio için Puppeteer tabanlı Hdfilmcehennemi eklentisi",
+  "name": "tmdb-turkish-addon",
+  "version": "2.0.0",
+  "description": "Mind IPTV ve Stremio için Türkçe Film ve Güncel Dizi Eklentisi",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "cheerio": "^1.0.0-rc.12",
-    "puppeteer-core": "^22.0.0",
-    "puppeteer-extra": "^3.3.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "axios": "^1.6.8",
     "stremio-addon-sdk": "^1.6.0"
   }
 }
